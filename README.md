@@ -46,6 +46,13 @@ Time taken for 1000000 entries: 00:00:00.0952760
 Time taken for 250000000 entries: 00:00:06.1811727
 Time taken for 1000000000 entries: 00:00:23.5878592
 
+### Test 5, DJDB hashing
+
+Time taken for 1000000 entries: 00:00:00.0922354
+Time taken for 250000000 entries: 00:00:05.8683649
+Time taken for 1000000000 entries: 00:00:23.8294834
+
+
 ## Is this really a good performance test? No!
 
 It was fun to test, but since the processing is so small, the OS and the NVM disk are the bottlenecks. 

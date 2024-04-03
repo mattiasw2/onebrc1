@@ -42,20 +42,20 @@
         {
             unchecked
             {
-                int hash = 17;
-                foreach (byte b in keySpan)
-                {
-                    hash = hash * 31 + b;
-                }
-                return Math.Abs(hash % _capacity);
-
-                // GetDjb2HashCode
-                //int hash = 5381;
+                //int hash = 17;
                 //foreach (byte b in keySpan)
                 //{
-                //    hash = ((hash << 5) + hash) + b; /* hash * 33 + b */
+                //    hash = hash * 31 + b;
                 //}
                 //return Math.Abs(hash % _capacity);
+
+                // GetDjb2HashCode
+                int hash = 5381;
+                foreach (byte b in keySpan)
+                {
+                    hash = ((hash << 5) + hash) + b; /* hash * 33 + b */
+                }
+                return Math.Abs(hash % _capacity);
             }
         }
 
