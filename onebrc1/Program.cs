@@ -31,12 +31,12 @@
                 long chunkSize = fileSize / noOfChunks + 1;
                 long overlapChunkSize = Math.Min(1000, fileSize / noOfChunks);
 
-                var dictionaries = new Dictionary<ReadOnlyMemory<byte>, decimal>[noOfChunks];
+                var dictionaries = new CustomByteDictionary<decimal>[noOfChunks];
 
                 Parallel.For(0, noOfChunks, i =>
                 {
                     // Console.WriteLine($"Processing chunk {i} of {noOfChunks}");
-                    dictionaries[i] = new Dictionary<ReadOnlyMemory<byte>, decimal>(new ReadOnlyMemoryComparer());
+                    dictionaries[i] = new CustomByteDictionary<decimal>();
                     ProcessChunk(fileName, i * chunkSize, Math.Min((i + 1) * chunkSize, fileSize + 1), chunkSize, (i == noOfChunks - 1 ? 0 : overlapChunkSize), dictionaries[i]);
                 });
 
@@ -80,7 +80,7 @@
         }
 
 
-        static void ProcessChunk(string nameOfFile, long start, long end, long chunkSize, long overlapChunkSize, Dictionary<ReadOnlyMemory<byte>, decimal> dictionary)
+        static void ProcessChunk(string nameOfFile, long start, long end, long chunkSize, long overlapChunkSize, CustomByteDictionary<decimal> dictionary)
         {
             // Adjust start and end to make sure we're not starting or ending in the middle of a record
             // This adjustment is not shown here but would involve seeking to the nearest newline character
@@ -149,7 +149,7 @@
                                 }
                                 else
                                 {
-                                    dictionary.Add(keyMemory, value);
+                                    dictionary.AddOrUpdate(keyMemory, value);
                                 }
                             }
                         }

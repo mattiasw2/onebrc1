@@ -10,7 +10,7 @@ https://github.com/gunnarmorling/1brc#faq
 Todo: 
 - [ ] Currently, I just sum up the values. I need to implement the calculation of the average value.
 - [ ] Write the correct format of the output file
-- [ ] Experiment with a dictionary where I only have to place the dictionary keys on the heap once.
+- [x] Experiment with a dictionary where I only have to place the dictionary keys on the heap once.
 - [ ] Does memory mapped file improve performance? Parallel processing is possible without it, just seek to the starting position.
 
 ## Results
@@ -22,18 +22,28 @@ Most likely, the result will be twice as fast if I had used a ram disk.
 
 ### Test 1, using standard dictionary
 
-Time taken for 1000000 entries: 00:00:00.1232696
-Time taken for 250000000 entries: 00:00:06.2098014
-Time taken for 1000000000 entries: 00:00:28.7838798
+Time taken for 1000000 entries: 00:00:00.1249419
+Time taken for 250000000 entries: 00:00:06.1007100
+Time taken for 1000000000 entries: 00:00:25.4956317
 
-### Test 2, using a dictionary with minumum heap allocation
+### Test 2, using a CustomByteDictionary with minumum heap allocation 
 
-... not implemented yet
+Only few percent faster.
+
+Time taken for 1000000 entries: 00:00:00.0888413
+Time taken for 250000000 entries: 00:00:05.8251759
+Time taken for 1000000000 entries: 00:00:24.4375167
+
+### Test 3, more buckets in hash table
+
+Time taken for 1000000 entries: 00:00:00.1076111
+Time taken for 250000000 entries: 00:00:06.0816273
+Time taken for 1000000000 entries: 00:00:23.8675923
 
 ## Is this really a good performance test? No!
 
 It was fun to test, but since the processing is so small, the OS and the NVM disk are the bottlenecks. 
-The amount of processing needed by the OS+disk at least 10 times larger than it takes to parse and sum the values.
+The amount of processing needed by the OS+disk is at least 10 times larger than it takes to parse and sum the values.
 
 So, if you have a lousy result on this test, I wonder what programming language you are using.
 
