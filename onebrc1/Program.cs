@@ -15,26 +15,44 @@
         {
             // string fileName = "c:/data6/cs/onebrc1/onebrc1/small.txt";
             // string fileName = "c:/data6/cs/onebrc1/onebrc1/medium.txt";
-            string fileName = "c:/data6/cs/onebrc1/onebrc1/measurements_1000000.txt";
+            // string fileName = "c:/data6/cs/onebrc1/onebrc1/measurements_1000000.txt";
             // string fileName = "c:/data6/cs/onebrc1/onebrc1/measurements_250000000.txt";
-            // string fileName = "c:/data6/cs/onebrc1/onebrc1/measurements_1000000000.txt";
+            string fileName = "c:/data6/cs/onebrc1/onebrc1/measurements_1000000000.txt";
 
 
             long fileSize = new FileInfo(fileName).Length;
-            long noOfChunks = 200;
+            long noOfChunks = 7;
             long chunkSize = fileSize / noOfChunks + 1;
             long overlapChunkSize = Math.Min(1000, fileSize / noOfChunks);
 
-            var dictionary = new Dictionary<ReadOnlyMemory<byte>, decimal>(new ReadOnlyMemoryComparer());
+            var dictionaries = new Dictionary<ReadOnlyMemory<byte>, decimal>[noOfChunks];
 
-            for (int i = 0; i < noOfChunks; i++)
+            Parallel.For(0, noOfChunks, i =>
             {
                 Console.WriteLine($"Processing chunk {i} of {noOfChunks}");
-                ProcessChunk(fileName, i * chunkSize, Math.Min((i + 1) * chunkSize, fileSize + 1), chunkSize, (i == noOfChunks - 1 ? 0 : overlapChunkSize), dictionary);
+                dictionaries[i] = new Dictionary<ReadOnlyMemory<byte>, decimal>(new ReadOnlyMemoryComparer());
+                ProcessChunk(fileName, i * chunkSize, Math.Min((i + 1) * chunkSize, fileSize + 1), chunkSize, (i == noOfChunks - 1 ? 0 : overlapChunkSize), dictionaries[i]);
+            });
+
+            var finalDictionary = new Dictionary<ReadOnlyMemory<byte>, decimal>(new ReadOnlyMemoryComparer());
+
+            foreach (var dictionary in dictionaries)
+            {
+                foreach (var kvp in dictionary)
+                {
+                    if (finalDictionary.TryGetValue(kvp.Key, out decimal currentValue))
+                    {
+                        finalDictionary[kvp.Key] = currentValue + kvp.Value;
+                    }
+                    else
+                    {
+                        finalDictionary.Add(kvp.Key, kvp.Value);
+                    }
+                }
             }
 
             // Convert keys to strings, sort, and print
-            var sorted = dictionary.Select(kvp => new { Name = Encoding.UTF8.GetString(kvp.Key.ToArray()), Sum = kvp.Value })
+            var sorted = finalDictionary.Select(kvp => new { Name = Encoding.UTF8.GetString(kvp.Key.ToArray()), Sum = kvp.Value })
                                    .OrderBy(x => x.Name);
 
 
@@ -59,8 +77,10 @@
             // Adjust start and end to make sure we're not starting or ending in the middle of a record
             // This adjustment is not shown here but would involve seeking to the nearest newline character
 
-            using var mmf = MemoryMappedFile.CreateFromFile(nameOfFile, FileMode.Open);
+            using var fs = new FileStream(nameOfFile, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using var mmf = MemoryMappedFile.CreateFromFile(fs, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: false);
             using var accessor = mmf.CreateViewAccessor(start, end - start - 1 + overlapChunkSize, MemoryMappedFileAccess.Read);
+
 
             //byte[] buffer = new byte[end - start];
             //accessor.ReadArray(0, buffer, 0, buffer.Length);
