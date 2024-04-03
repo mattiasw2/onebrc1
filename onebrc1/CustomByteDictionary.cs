@@ -32,7 +32,7 @@
         private readonly int _capacity;
         private readonly Entry[] _buckets;
 
-        public CustomByteDictionary(int capacity = 32768)
+        public CustomByteDictionary(int capacity = 2048)
         {
             _capacity = capacity;
             _buckets = new Entry[capacity];

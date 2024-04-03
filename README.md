@@ -34,11 +34,17 @@ Time taken for 1000000 entries: 00:00:00.0888413
 Time taken for 250000000 entries: 00:00:05.8251759
 Time taken for 1000000000 entries: 00:00:24.4375167
 
-### Test 3, more buckets in hash table
+### Test 3, 32768 buckets in hash table
 
 Time taken for 1000000 entries: 00:00:00.1076111
 Time taken for 250000000 entries: 00:00:06.0816273
 Time taken for 1000000000 entries: 00:00:23.8675923
+
+### Test 4, 2048 buckets in hash table (there are only cities)
+
+Time taken for 1000000 entries: 00:00:00.0952760
+Time taken for 250000000 entries: 00:00:06.1811727
+Time taken for 1000000000 entries: 00:00:23.5878592
 
 ## Is this really a good performance test? No!
 
