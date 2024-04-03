@@ -13,6 +13,8 @@
 
         static void Main()
         {
+            var start = DateTime.Now;
+
             // string fileName = "c:/data6/cs/onebrc1/onebrc1/small.txt";
             // string fileName = "c:/data6/cs/onebrc1/onebrc1/medium.txt";
             // string fileName = "c:/data6/cs/onebrc1/onebrc1/measurements_1000000.txt";
@@ -21,7 +23,7 @@
 
 
             long fileSize = new FileInfo(fileName).Length;
-            long noOfChunks = 7;
+            long noOfChunks = 28;
             long chunkSize = fileSize / noOfChunks + 1;
             long overlapChunkSize = Math.Min(1000, fileSize / noOfChunks);
 
@@ -68,7 +70,8 @@
                 }
             }
 
-
+            var endtime = DateTime.Now;
+            Console.WriteLine($"Time taken: {endtime - start}");
         }
 
 
