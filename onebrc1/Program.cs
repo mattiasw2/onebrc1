@@ -13,65 +13,70 @@
 
         static void Main()
         {
-            var start = DateTime.Now;
-
-            // string fileName = "c:/data6/cs/onebrc1/onebrc1/small.txt";
-            // string fileName = "c:/data6/cs/onebrc1/onebrc1/medium.txt";
-            // string fileName = "c:/data6/cs/onebrc1/onebrc1/measurements_1000000.txt";
-            // string fileName = "c:/data6/cs/onebrc1/onebrc1/measurements_250000000.txt";
-            string fileName = "c:/data6/cs/onebrc1/onebrc1/measurements_1000000000.txt";
-
-
-            long fileSize = new FileInfo(fileName).Length;
-            long noOfChunks = 28;
-            long chunkSize = fileSize / noOfChunks + 1;
-            long overlapChunkSize = Math.Min(1000, fileSize / noOfChunks);
-
-            var dictionaries = new Dictionary<ReadOnlyMemory<byte>, decimal>[noOfChunks];
-
-            Parallel.For(0, noOfChunks, i =>
+            var fileNames = new List<(string FileName, int RecordCount)>
             {
-                Console.WriteLine($"Processing chunk {i} of {noOfChunks}");
-                dictionaries[i] = new Dictionary<ReadOnlyMemory<byte>, decimal>(new ReadOnlyMemoryComparer());
-                ProcessChunk(fileName, i * chunkSize, Math.Min((i + 1) * chunkSize, fileSize + 1), chunkSize, (i == noOfChunks - 1 ? 0 : overlapChunkSize), dictionaries[i]);
-            });
+                // ("c:/data6/cs/onebrc1/onebrc1/small.txt", 8),
+                // ("c:/data6/cs/onebrc1/onebrc1/medium.txt", 1000),
+                ("c:/data6/cs/onebrc1/onebrc1/measurements_1000000.txt", 1000000),
+                ("c:/data6/cs/onebrc1/onebrc1/measurements_250000000.txt", 250000000),
+                ("c:/data6/cs/onebrc1/onebrc1/measurements_1000000000.txt", 1000000000)
+            };
 
-            var finalDictionary = new Dictionary<ReadOnlyMemory<byte>, decimal>(new ReadOnlyMemoryComparer());
-
-            foreach (var dictionary in dictionaries)
+            foreach (var (fileName, recordCount) in fileNames)
             {
-                foreach (var kvp in dictionary)
+                var start = DateTime.Now;
+
+                long fileSize = new FileInfo(fileName).Length;
+                long noOfChunks = 28;
+                long chunkSize = fileSize / noOfChunks + 1;
+                long overlapChunkSize = Math.Min(1000, fileSize / noOfChunks);
+
+                var dictionaries = new Dictionary<ReadOnlyMemory<byte>, decimal>[noOfChunks];
+
+                Parallel.For(0, noOfChunks, i =>
                 {
-                    if (finalDictionary.TryGetValue(kvp.Key, out decimal currentValue))
+                    // Console.WriteLine($"Processing chunk {i} of {noOfChunks}");
+                    dictionaries[i] = new Dictionary<ReadOnlyMemory<byte>, decimal>(new ReadOnlyMemoryComparer());
+                    ProcessChunk(fileName, i * chunkSize, Math.Min((i + 1) * chunkSize, fileSize + 1), chunkSize, (i == noOfChunks - 1 ? 0 : overlapChunkSize), dictionaries[i]);
+                });
+
+                var finalDictionary = new Dictionary<ReadOnlyMemory<byte>, decimal>(new ReadOnlyMemoryComparer());
+
+                foreach (var dictionary in dictionaries)
+                {
+                    foreach (var kvp in dictionary)
                     {
-                        finalDictionary[kvp.Key] = currentValue + kvp.Value;
-                    }
-                    else
-                    {
-                        finalDictionary.Add(kvp.Key, kvp.Value);
+                        if (finalDictionary.TryGetValue(kvp.Key, out decimal currentValue))
+                        {
+                            finalDictionary[kvp.Key] = currentValue + kvp.Value;
+                        }
+                        else
+                        {
+                            finalDictionary.Add(kvp.Key, kvp.Value);
+                        }
                     }
                 }
-            }
 
-            // Convert keys to strings, sort, and print
-            var sorted = finalDictionary.Select(kvp => new { Name = Encoding.UTF8.GetString(kvp.Key.ToArray()), Sum = kvp.Value })
-                                   .OrderBy(x => x.Name);
-
+                // Convert keys to strings, sort, and print
+                var sorted = finalDictionary.Select(kvp => new { Name = Encoding.UTF8.GetString(kvp.Key.ToArray()), Sum = kvp.Value })
+                                       .OrderBy(x => x.Name);
 
 
-            using (StreamWriter writer = new StreamWriter("result.txt"))
-            {
-                writer.WriteLine("Result:");
-                int maxResultsShown = 1000;
-                foreach (var item in sorted)
+
+                using (StreamWriter writer = new StreamWriter("result.txt"))
                 {
-                    if (maxResultsShown-- == 0) break;
-                    writer.WriteLine($"{item.Name}: {item.Sum}");
+                    writer.WriteLine("Result:");
+                    int maxResultsShown = 1000;
+                    foreach (var item in sorted)
+                    {
+                        if (maxResultsShown-- == 0) break;
+                        writer.WriteLine($"{item.Name}: {item.Sum}");
+                    }
                 }
-            }
 
-            var endtime = DateTime.Now;
-            Console.WriteLine($"Time taken: {endtime - start}");
+                var endtime = DateTime.Now;
+                Console.WriteLine($"Time taken for {recordCount} entries: {endtime - start}");
+            }
         }
 
 
