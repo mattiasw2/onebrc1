@@ -20,6 +20,18 @@ The execution time is 23.1 seconds on my 8 core Ryzen 7040 laptop under Windows 
 Remember that this cannot be compared with the Java implementation since the Java implementations since they use a ram disk. 
 Most likely, the result will be twice as fast if I had used a ram disk.
 
+However, there is another C# that is much faster than mine, almost 10 times faster.
+
+Completed in 00:00:03.2792809 at https://github.com/yurvon-screamo/1brc/tree/main
+
+The key differences are:
+- Does proper avg/sum calcuation
+- Does proper output
+- Uses int instead of decimal (where assume 1 decimal)
+- hand-crafted number parsing
+- uses plain streamreader instead of memory mapped files
+
+
 ### Test 1, using standard dictionary
 
 Time taken for 1000000 entries: 00:00:00.1249419
@@ -52,6 +64,11 @@ Time taken for 1000000 entries: 00:00:00.0922354
 Time taken for 250000000 entries: 00:00:05.8683649
 Time taken for 1000000000 entries: 00:00:23.8294834
 
+### Test 6, replacing decimal by float didn't make any difference
+
+Time taken for 1000000 entries: 00:00:00.1170295
+Time taken for 250000000 entries: 00:00:05.4428153
+Time taken for 1000000000 entries: 00:00:24.3926523
 
 ## Is this really a good performance test? No!
 

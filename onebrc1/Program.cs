@@ -31,22 +31,22 @@
                 long chunkSize = fileSize / noOfChunks + 1;
                 long overlapChunkSize = Math.Min(1000, fileSize / noOfChunks);
 
-                var dictionaries = new CustomByteDictionary<decimal>[noOfChunks];
+                var dictionaries = new CustomByteDictionary<float>[noOfChunks];
 
                 Parallel.For(0, noOfChunks, i =>
                 {
                     // Console.WriteLine($"Processing chunk {i} of {noOfChunks}");
-                    dictionaries[i] = new CustomByteDictionary<decimal>();
+                    dictionaries[i] = new CustomByteDictionary<float>();
                     ProcessChunk(fileName, i * chunkSize, Math.Min((i + 1) * chunkSize, fileSize + 1), chunkSize, (i == noOfChunks - 1 ? 0 : overlapChunkSize), dictionaries[i]);
                 });
 
-                var finalDictionary = new Dictionary<ReadOnlyMemory<byte>, decimal>(new ReadOnlyMemoryComparer());
+                var finalDictionary = new Dictionary<ReadOnlyMemory<byte>, float>(new ReadOnlyMemoryComparer());
 
                 foreach (var dictionary in dictionaries)
                 {
                     foreach (var kvp in dictionary)
                     {
-                        if (finalDictionary.TryGetValue(kvp.Key, out decimal currentValue))
+                        if (finalDictionary.TryGetValue(kvp.Key, out float currentValue))
                         {
                             finalDictionary[kvp.Key] = currentValue + kvp.Value;
                         }
@@ -80,7 +80,7 @@
         }
 
 
-        static void ProcessChunk(string nameOfFile, long start, long end, long chunkSize, long overlapChunkSize, CustomByteDictionary<decimal> dictionary)
+        static void ProcessChunk(string nameOfFile, long start, long end, long chunkSize, long overlapChunkSize, CustomByteDictionary<float> dictionary)
         {
             // Adjust start and end to make sure we're not starting or ending in the middle of a record
             // This adjustment is not shown here but would involve seeking to the nearest newline character
@@ -136,14 +136,14 @@
                             // Console.WriteLine($"keySpan: {Encoding.UTF8.GetString(keySpan.ToArray())}");
                             // Console.WriteLine($"valueSpan: {Encoding.UTF8.GetString(valueSpan.ToArray())}");
 
-                            if (decimal.TryParse(Encoding.UTF8.GetString(valueSpan), out decimal value))
+                            if (float.TryParse(Encoding.UTF8.GetString(valueSpan), out float value))
                             {
                                 // todo: possible optimization, only copy memory if key is not already in dictionary
 
                                 // ReadOnlyMemory<byte> keyMemory = span.Slice(lineStart, separatorPos);
                                 byte[] keyMemory = keySpan.ToArray();
 
-                                if (dictionary.TryGetValue(keyMemory, out decimal currentValue))
+                                if (dictionary.TryGetValue(keyMemory, out float currentValue))
                                 {
                                     dictionary[keyMemory] = currentValue + value;
                                 }
