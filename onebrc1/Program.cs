@@ -1,4 +1,4 @@
-﻿#define SINGLE_THREAD
+﻿// #define SINGLE_THREAD
 
 namespace onebrc1
 {
@@ -22,7 +22,7 @@ namespace onebrc1
                 // ("c:/data6/cs/onebrc1/onebrc1/medium.txt", 1000),
                 ("c:/data6/cs/onebrc1/onebrc1/measurements_1000000.txt", 1000000),
                 ("c:/data6/cs/onebrc1/onebrc1/measurements_250000000.txt", 250000000),
-                // ("c:/data6/cs/onebrc1/onebrc1/measurements_1000000000.txt", 1000000000)
+                ("c:/data6/cs/onebrc1/onebrc1/measurements_1000000000.txt", 1000000000)
             };
 
             foreach (var (fileName, recordCount) in fileNames)
@@ -110,51 +110,88 @@ namespace onebrc1
         {
             using var fs = new FileStream(nameOfFile, FileMode.Open, FileAccess.Read, FileShare.Read);
             fs.Position = start;
-            using var sr = new StreamReader(fs);
+            using var sr = new BufferedStream(fs);
             ProcessChunkInternal(sr, start, end, chunkSize, dictionary);
         }
 
-        private static void ProcessChunkInternal(StreamReader sr, long start, long end, long chunkSize, CustomByteDictionary<float> dictionary)
+        private static void ProcessChunkInternal(BufferedStream bs, long start, long end, long chunkSize, CustomByteDictionary<float> dictionary)
         {
-            string? line;
-            long bytesRead = 0;
-            if (start != 0)
-            {
-                // Skip the first line if not the first chunk
-                sr.ReadLine();
-            }
+            byte[] buffer = new byte[1024 + 100]; // Adjust the size as needed, +100 for maximum length of a row
+            int bytesRead;
+            int lineStart = 0;
 
-            while ((line = sr.ReadLine()) != null && bytesRead <= chunkSize)
+            bool skipFirstRow = start != 0;
+            long totalBytesRead = 0;
+
+            bs.Position = start; // Set the position to start
+
+            while ((bytesRead = bs.Read(buffer, lineStart, Math.Min(buffer.Length - lineStart, (int)(chunkSize - totalBytesRead)))) > 0)
             {
-                // Find the separator (semicolon) position
-                if (line.Length > 0)
+                bytesRead += lineStart;
+                totalBytesRead += bytesRead;
+
+                lineStart = 0;
+
+                for (int i = 0; i < bytesRead; i++)
                 {
-                    int separatorPos = line.IndexOf(';');
-                    if (separatorPos != -1)
+                    if (buffer[i] == '\n')
                     {
-                        ReadOnlySpan<byte> keySpan = Encoding.UTF8.GetBytes(line.Substring(0, separatorPos));
-                        ReadOnlySpan<byte> valueSpan = Encoding.UTF8.GetBytes(line.Substring(separatorPos + 1));
-
-                        if (float.TryParse(Encoding.UTF8.GetString(valueSpan), out float value))
+                        if (skipFirstRow)
                         {
-                            if (dictionary.TryGetValue(keySpan, out float currentValue))
-                            {
-                                dictionary[keySpan] = currentValue + value;
-                            }
-                            else
-                            {
-                                dictionary.AddOrUpdate(keySpan, value);
-                            }
+                            skipFirstRow = false;
+                            lineStart = i + 1;
                         }
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException($"Invalid line format, didn't find ';' in '{line}'");
+                        else
+                        {
+                            ReadOnlySpan<byte> line = new ReadOnlySpan<byte>(buffer, lineStart, i - lineStart);
+                            ProcessLine(line, dictionary);
+                            lineStart = i + 1;
+                        }
                     }
                 }
 
-                bytesRead += Encoding.UTF8.GetByteCount(line) + 2; // +2 for \r\n
+                // If we didn't find a newline, move the remaining bytes to the start of the buffer
+                if (lineStart < bytesRead)
+                {
+                    Array.Copy(buffer, lineStart, buffer, 0, bytesRead - lineStart);
+                }
+
+                lineStart = bytesRead - lineStart;
+
+                // Stop reading if we've reached the end of the chunk
+                if (totalBytesRead >= chunkSize)
+                {
+                    break;
+                }
             }
         }
+
+        private static void ProcessLine(ReadOnlySpan<byte> line, CustomByteDictionary<float> dictionary)
+        {
+            // Find the separator (semicolon) position
+            int separatorPos = line.IndexOf((byte)';');
+            if (separatorPos != -1)
+            {
+                ReadOnlySpan<byte> keySpan = line.Slice(0, separatorPos);
+                ReadOnlySpan<byte> valueSpan = line.Slice(separatorPos + 1);
+
+                if (float.TryParse(Encoding.UTF8.GetString(valueSpan), out float value))
+                {
+                    if (dictionary.TryGetValue(keySpan, out float currentValue))
+                    {
+                        dictionary[keySpan] = currentValue + value;
+                    }
+                    else
+                    {
+                        dictionary.AddOrUpdate(keySpan, value);
+                    }
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException($"Invalid line format, didn't find ';' in '{Encoding.UTF8.GetString(line)}'");
+            }
+        }
+
     }
 }

@@ -142,6 +142,17 @@ Time taken for 1000000 entries: 00:00:00.1170295
 Time taken for 250000000 entries: 00:00:05.4428153
 Time taken for 1000000000 entries: 00:00:24.3926523
 
+### Test 7, using a plain streamreader instead of memory mapped files (and using strings) and no parallel processing
+
+Time taken for 1000000 entries: 00:00:00.3809404
+Time taken for 250000000 entries: 00:00:40.4843522
+
+### Test 8, using a bufferedreader instead of memory mapped files (and using spans) with parallel processing
+
+Time taken for 1000000 entries: 00:00:00.0976995
+Time taken for 250000000 entries: 00:00:04.9646806
+Time taken for 1000000000 entries: 00:00:21.2608695
+
 ## Is this really a good performance test? No!
 
 It was fun to test, but since the processing is so small, the OS and the NVM disk are the bottlenecks. 
