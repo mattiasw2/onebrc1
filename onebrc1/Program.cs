@@ -1,4 +1,6 @@
-﻿namespace onebrc1
+﻿#define SINGLE_THREAD
+
+namespace onebrc1
 {
 
     using System;
@@ -19,7 +21,7 @@
                 // ("c:/data6/cs/onebrc1/onebrc1/medium.txt", 1000),
                 ("c:/data6/cs/onebrc1/onebrc1/measurements_1000000.txt", 1000000),
                 ("c:/data6/cs/onebrc1/onebrc1/measurements_250000000.txt", 250000000),
-                ("c:/data6/cs/onebrc1/onebrc1/measurements_1000000000.txt", 1000000000)
+                // ("c:/data6/cs/onebrc1/onebrc1/measurements_1000000000.txt", 1000000000)
             };
 
             foreach (var (fileName, recordCount) in fileNames)
@@ -33,50 +35,74 @@
 
                 var dictionaries = new CustomByteDictionary<float>[noOfChunks];
 
-                Parallel.For(0, noOfChunks, i =>
+                Action<long> f = (i) =>
                 {
                     // Console.WriteLine($"Processing chunk {i} of {noOfChunks}");
                     dictionaries[i] = new CustomByteDictionary<float>();
                     ProcessChunk(fileName, i * chunkSize, Math.Min((i + 1) * chunkSize, fileSize + 1), chunkSize, (i == noOfChunks - 1 ? 0 : overlapChunkSize), dictionaries[i]);
-                });
+                };
 
-                var finalDictionary = new Dictionary<ReadOnlyMemory<byte>, float>(new ReadOnlyMemoryComparer());
-
-                foreach (var dictionary in dictionaries)
+#if SINGLE_THREAD
+                for (long i = 0; i < noOfChunks; i++)
                 {
-                    foreach (var kvp in dictionary)
-                    {
-                        if (finalDictionary.TryGetValue(kvp.Key, out float currentValue))
-                        {
-                            finalDictionary[kvp.Key] = currentValue + kvp.Value;
-                        }
-                        else
-                        {
-                            finalDictionary.Add(kvp.Key, kvp.Value);
-                        }
-                    }
+                    f(i);
                 }
+#else
+                // Parallel.For(0, noOfChunks, f);
 
-                // Convert keys to strings, sort, and print
-                var sorted = finalDictionary.Select(kvp => new { Name = Encoding.UTF8.GetString(kvp.Key.ToArray()), Sum = kvp.Value })
-                                       .OrderBy(x => x.Name);
+                // every 2nd to check if overlapping is the problem.
+                Parallel.For(0, noOfChunks/2, i => f(i*2));
+                Parallel.For(0, noOfChunks/2, i => f(i*2+1));
+#endif
 
+                var finalDictionary = CombineDictionaries(dictionaries);
 
-
-                using (StreamWriter writer = new StreamWriter("result.txt"))
-                {
-                    writer.WriteLine("Result:");
-                    int maxResultsShown = 1000;
-                    foreach (var item in sorted)
-                    {
-                        if (maxResultsShown-- == 0) break;
-                        writer.WriteLine($"{item.Name}: {item.Sum}");
-                    }
-                }
+                PrintResult(finalDictionary);
 
                 var endtime = DateTime.Now;
                 Console.WriteLine($"Time taken for {recordCount} entries: {endtime - start}");
             }
+        }
+
+        private static void PrintResult(Dictionary<ReadOnlyMemory<byte>, float> finalDictionary)
+        {
+            // Convert keys to strings, sort, and print
+            var sorted = finalDictionary.Select(kvp => new { Name = Encoding.UTF8.GetString(kvp.Key.ToArray()), Sum = kvp.Value })
+                .OrderBy(x => x.Name);
+
+
+            using (StreamWriter writer = new StreamWriter("result.txt"))
+            {
+                writer.WriteLine("Result:");
+                int maxResultsShown = 1000;
+                foreach (var item in sorted)
+                {
+                    if (maxResultsShown-- == 0) break;
+                    writer.WriteLine($"{item.Name}: {item.Sum}");
+                }
+            }
+        }
+
+        private static Dictionary<ReadOnlyMemory<byte>, float> CombineDictionaries(CustomByteDictionary<float>[] dictionaries)
+        {
+            var finalDictionary = new Dictionary<ReadOnlyMemory<byte>, float>(new ReadOnlyMemoryComparer());
+
+            foreach (var dictionary in dictionaries)
+            {
+                foreach (var kvp in dictionary)
+                {
+                    if (finalDictionary.TryGetValue(kvp.Key, out float currentValue))
+                    {
+                        finalDictionary[kvp.Key] = currentValue + kvp.Value;
+                    }
+                    else
+                    {
+                        finalDictionary.Add(kvp.Key, kvp.Value);
+                    }
+                }
+            }
+
+            return finalDictionary;
         }
 
 
@@ -105,65 +131,70 @@
 
 
 
-                int lineStart = 0;
+                ProcessChunkInternal(start, chunkSize, dictionary, span);
+            }
+        }
 
-                if (start != 0)
+        private static void ProcessChunkInternal(long start, long chunkSize, CustomByteDictionary<float> dictionary, Span<byte> span)
+        {
+            int lineStart = 0;
+
+            if (start != 0)
+            {
+                lineStart = span.IndexOf((byte)'\n') + 1; // Skip the first partial line incl \n
+            }
+
+            int length = span.Length;
+            for (int i = lineStart; i < length; i++)
+            {
+                // Find the end of the line, we assume file has ending \n
+
+
+                if (span[i] == (byte)'\n')
                 {
-                    lineStart = span.IndexOf((byte)'\n') + 1; // Skip the first partial line incl \n
-                }
+                    // Process the line
+                    int spanLength = i - lineStart;
+                    if (spanLength == 0) break; // Empty line, we're done
 
-                int length = span.Length;
-                for (int i = lineStart; i < length; i++)
-                {
-                    // Find the end of the line, we assume file has ending \n
+                    ReadOnlySpan<byte> line = span.Slice(lineStart, spanLength);
 
-
-                    if (span[i] == (byte)'\n')
+                    // Find the separator (semicolon) position
+                    int separatorPos = line.IndexOf((byte)';');
+                    if (separatorPos != -1)
                     {
-                        // Process the line
-                        int spanLength = i - lineStart;
-                        if (spanLength == 0) break; // Empty line, we're done
+                        ReadOnlySpan<byte> keySpan = line.Slice(0, separatorPos);
+                        ReadOnlySpan<byte> valueSpan = line.Slice(separatorPos + 1, line.Length - separatorPos - 1); // Exclude '\n'
 
-                        ReadOnlySpan<byte> line = span.Slice(lineStart, spanLength);
+                        // Console.WriteLine($"keySpan: {Encoding.UTF8.GetString(keySpan.ToArray())}");
+                        // Console.WriteLine($"valueSpan: {Encoding.UTF8.GetString(valueSpan.ToArray())}");
 
-                        // Find the separator (semicolon) position
-                        int separatorPos = line.IndexOf((byte)';');
-                        if (separatorPos != -1)
+                        if (float.TryParse(Encoding.UTF8.GetString(valueSpan), out float value))
                         {
-                            ReadOnlySpan<byte> keySpan = line.Slice(0, separatorPos);
-                            ReadOnlySpan<byte> valueSpan = line.Slice(separatorPos + 1, line.Length - separatorPos - 1); // Exclude '\n'
+                            // todo: possible optimization, only copy memory if key is not already in dictionary
 
-                            // Console.WriteLine($"keySpan: {Encoding.UTF8.GetString(keySpan.ToArray())}");
-                            // Console.WriteLine($"valueSpan: {Encoding.UTF8.GetString(valueSpan.ToArray())}");
+                            // ReadOnlyMemory<byte> keyMemory = span.Slice(lineStart, separatorPos);
+                            byte[] keyMemory = keySpan.ToArray();
 
-                            if (float.TryParse(Encoding.UTF8.GetString(valueSpan), out float value))
+                            if (dictionary.TryGetValue(keyMemory, out float currentValue))
                             {
-                                // todo: possible optimization, only copy memory if key is not already in dictionary
-
-                                // ReadOnlyMemory<byte> keyMemory = span.Slice(lineStart, separatorPos);
-                                byte[] keyMemory = keySpan.ToArray();
-
-                                if (dictionary.TryGetValue(keyMemory, out float currentValue))
-                                {
-                                    dictionary[keyMemory] = currentValue + value;
-                                }
-                                else
-                                {
-                                    dictionary.AddOrUpdate(keyMemory, value);
-                                }
+                                dictionary[keyMemory] = currentValue + value;
+                            }
+                            else
+                            {
+                                dictionary.AddOrUpdate(keyMemory, value);
                             }
                         }
-                        else
-                        {
-                            throw new InvalidOperationException($"Invalid line format, didn't find ';' in '{Encoding.UTF8.GetString(line.ToArray())}'");
-                        }
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException($"Invalid line format, didn't find ';' in '{Encoding.UTF8.GetString(line.ToArray())}'");
+                    }
 
-                        lineStart = i + 1; // Start of the next line
+                    lineStart = i + 1; // Start of the next line
 
-                        if (i >= chunkSize)
-                        {
-                            break;
-                        }
+                    if (i >= chunkSize)
+                    {
+                        break;
                     }
                 }
             }

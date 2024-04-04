@@ -1,4 +1,4 @@
-# 1brc using C#
+﻿# 1brc using C#
 
 A good example how to use span and memory mapped files in C#.
 
@@ -20,6 +20,8 @@ The execution time is 23.1 seconds on my 8 core Ryzen 7040 laptop under Windows 
 Remember that this cannot be compared with the Java implementation since the Java implementations since they use a ram disk. 
 Most likely, the result will be twice as fast if I had used a ram disk.
 
+## Other implementations is magnitudes faster
+
 However, there is another C# that is much faster than mine, almost 10 times faster.
 
 Completed in 00:00:03.2792809 at https://github.com/yurvon-screamo/1brc/tree/main
@@ -31,6 +33,46 @@ The key differences are:
 - hand-crafted number parsing
 - uses plain streamreader instead of memory mapped files
 
+### Why is it so slow?
+
+float.TryParseFloat takes 5% of the cpu time, so not the reason.
+
+ToArray takes 20%
+
+FramedAllocateString takes 18%
+
+40% is something else, maybe the merging and presenting of the dictionaries.
+
+Or could it be that the Parallel.ForEach confuses the profiler?
+
+Most likely, the memory mapped is one a time. Managing memory mapping might be 80% of the time according to proiler.
+
+So, next step, remove memory mapped file and use a plain streamreader.
+
+Tried to remove overlapping of memory mapped files, but it didn't make any difference.
+
+### TryParseFloat is half of the time inside the program, but what are the remaining 70%?
+
+```
+  100%   All Calls  •  81,543 ms
+    32.2%   Main  •  26,285 ms  •  onebrc1.Program.Main()
+      32.2%   <Main>b__0  •  26,241 ms  •  onebrc1.Program+<>c__DisplayClass0_0.<Main>b__0(Int64)
+        32.2%   ProcessChunk  •  26,241 ms  •  onebrc1.Program.ProcessChunk(String, Int64, Int64, Int64, Int64, CustomByteDictionary)
+          32.2%   ProcessChunkInternal  •  26,235 ms  •  onebrc1.Program.ProcessChunkInternal(Int64, Int64, CustomByteDictionary, Span)
+            13.7%   TryParseFloat  •  11,158 ms  •  System.Number.TryParseFloat(ReadOnlySpan, NumberStyles, NumberFormatInfo, out TFloat)
+            1.66%   ToArray  •  1,353 ms  •  System.ReadOnlySpan`1.ToArray()
+            1.11%   GetPointerToFirstInvalidByte  •  906 ms  •  System.Text.Unicode.Utf8Utility.GetPointerToFirstInvalidByte(Byte*, Int32, out Int32, out Int32)
+            0.68%   NonPackedIndexOfValueType  •  558 ms  •  System.SpanHelpers.NonPackedIndexOfValueType(ref TValue, TValue, Int32)
+            0.60%   TranscodeToUtf16  •  491 ms  •  System.Text.Unicode.Utf8Utility.TranscodeToUtf16(Byte*, Int32, Char*, Int32, out Byte*, out Char*)
+            0.17%   [Garbage collection]  •  142 ms
+            0.02%   TryParse  •  13 ms  •  System.Single.TryParse(String, out Single)
+            <0.01%   GetString  •  6.4 ms  •  System.Text.Encoding.GetString(ReadOnlySpan)
+          <0.01%   FileStream..ctor  •  6.0 ms  •  System.IO.FileStream..ctor(String, FileMode, FileAccess, FileShare)
+      0.02%   get_Now  •  13 ms  •  System.DateTime.get_Now()
+    ► 0.02%   PrintResult  •  13 ms  •  onebrc1.Program.PrintResult(Dictionary)
+    ► 0.01%   CombineDictionaries  •  11 ms  •  onebrc1.Program.CombineDictionaries(CustomByteDictionary[])
+      <0.01%   WriteLine  •  6.5 ms  •  System.Console.WriteLine(String)
+```
 
 ### Test 1, using standard dictionary
 
