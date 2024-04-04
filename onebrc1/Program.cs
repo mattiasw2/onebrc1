@@ -22,7 +22,7 @@ namespace onebrc1
                 // ("c:/data6/cs/onebrc1/onebrc1/medium.txt", 1000),
                 ("c:/data6/cs/onebrc1/onebrc1/measurements_1000000.txt", 1000000),
                 ("c:/data6/cs/onebrc1/onebrc1/measurements_250000000.txt", 250000000),
-                // ("c:/data6/cs/onebrc1/onebrc1/measurements_1000000000.txt", 1000000000)
+                ("c:/data6/cs/onebrc1/onebrc1/measurements_1000000000.txt", 1000000000)
             };
 
             foreach (var (fileName, recordCount) in fileNames)
@@ -93,7 +93,7 @@ namespace onebrc1
             {
                 foreach (var kvp in dictionary)
                 {
-                    if (finalDictionary.TryGetValue(kvp.Key, out Station currentValue))
+                    if (finalDictionary.TryGetValue(kvp.Key, out Station? currentValue))
                     {
                         currentValue.Combine(kvp.Value);
                     }
@@ -179,9 +179,9 @@ namespace onebrc1
 
                 if (float.TryParse(valueSpan, out float value))
                 {
-                    if (dictionary.TryGetValue(keySpan, out Station currentValue))
+                    if (dictionary.TryGetValue(keySpan, out Station? currentValue))
                     {
-                        currentValue.Append(value);
+                        currentValue!.Append(value);
                     }
                     else
                     {

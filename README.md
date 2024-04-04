@@ -153,15 +153,11 @@ Time taken for 1000000 entries: 00:00:00.0976995
 Time taken for 250000000 entries: 00:00:04.9646806
 Time taken for 1000000000 entries: 00:00:21.2608695
 
-### Test 9, added Station, which reduces dictionary searches
+### Test 9, added Station, which reduces dictionary searches and removed unnecessary Encoding.UTF8.GetString taht was introduced when parsing float.
 
-Time taken for 1000000 entries: 00:00:00.0955160
-Time taken for 250000000 entries: 00:00:04.4673666
-
-### Test 10, Removed unnecessary Encoding.UTF8.GetString taht was introduced when parsing float.
-
-Time taken for 1000000 entries: 00:00:00.0839292
-Time taken for 250000000 entries: 00:00:03.1789454
+Time taken for 1000000 entries: 00:00:00.0945957
+Time taken for 250000000 entries: 00:00:03.2095751
+Time taken for 1000000000 entries: 00:00:13.7454747
 
 ## Is this really a good performance test? No!
 

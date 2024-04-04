@@ -3,28 +3,28 @@ using System.Text;
 
 namespace onebrc1
 {
-    public struct Station
+    public class Station
     {
         internal int Count;
         internal float Total;
 
         internal float Max;
-        internal float _min;
+        internal float Min;
 
         internal readonly string _name;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Station(ReadOnlySpan<byte> name, float init)
+        // [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Station(ReadOnlySpan<byte> name, float first)
         {
             _name = Encoding.UTF8.GetString(name);
 
-            Total = init;
-            _min = init;
-            Max = init;
+            Total = first;
+            Min = first;
+            Max = first;
             Count = 1;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        // [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Combine(Station station)
         {
             Count += station.Count;
@@ -34,18 +34,18 @@ namespace onebrc1
             {
                 Max = station.Max;
             }
-            else if (station._min < _min)
+            else if (station.Min < Min)
             {
-                _min = station._min;
+                Min = station.Min;
             }
         }
 
-        public readonly string ToString()
+        public override string ToString()
         {
-            return $"{_name} = {_min}/{Math.Round(Total / Count, 1)}/{Max}";
+            return $"{_name} = {Min}/{Math.Round(Total / Count, 1)}/{Max}";
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        // [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Append(float value)
         {
             Count++;
@@ -55,9 +55,9 @@ namespace onebrc1
             {
                 Max = value;
             }
-            else if (value < _min)
+            else if (value < Min)
             {
-                _min = value;
+                Min = value;
             }
         }
     }
