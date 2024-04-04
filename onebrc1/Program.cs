@@ -1,4 +1,4 @@
-﻿#define SINGLE_THREAD
+﻿// #define SINGLE_THREAD
 
 namespace onebrc1
 {
@@ -80,7 +80,7 @@ namespace onebrc1
                 foreach (var item in sorted)
                 {
                     if (maxResultsShown-- == 0) break;
-                    writer.WriteLine($"{item.Name}: {item.Sum}");
+                    writer.WriteLine(item.Sum.ToString());
                 }
             }
         }

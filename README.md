@@ -153,6 +153,11 @@ Time taken for 1000000 entries: 00:00:00.0976995
 Time taken for 250000000 entries: 00:00:04.9646806
 Time taken for 1000000000 entries: 00:00:21.2608695
 
+### Test 9, added Station, which reduces dictionary searches
+
+Time taken for 1000000 entries: 00:00:00.0955160
+Time taken for 250000000 entries: 00:00:04.4673666
+
 ## Is this really a good performance test? No!
 
 It was fun to test, but since the processing is so small, the OS and the NVM disk are the bottlenecks. 
