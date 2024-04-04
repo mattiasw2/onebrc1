@@ -203,31 +203,25 @@ namespace onebrc1
 
             for (int i = 0; i < span.Length; i++)
             {
-                if (span[i] == '-')
+                switch (span[i])
                 {
-                    if (i != 0) return false; // '-' can only be at the first position
-                    isNegative = true;
-                }
-                else if (span[i] == '.')
-                {
-                    if (decimalPlace != -1) return false; // More than one '.'
-                    decimalPlace = i;
-                }
-                else if (span[i] >= '0' && span[i] <= '9')
-                {
-                    int digit = span[i] - '0';
-                    if (decimalPlace == -1)
-                    {
-                        result = result * 10 + digit;
-                    }
-                    else
-                    {
-                        result += digit * (float)Math.Pow(10, decimalPlace - i);
-                    }
-                }
-                else
-                {
-                    return false; // Invalid character
+                    case (byte)'-':
+                        isNegative = true;
+                        break;
+                    case (byte)'.':
+                        decimalPlace = i;
+                        break;
+                    default:
+                        int digit = span[i] - '0';
+                        if (decimalPlace == -1)
+                        {
+                            result = result * 10 + digit;
+                        }
+                        else
+                        {
+                            result += digit * (float)Math.Pow(10, decimalPlace - i);
+                        }
+                        break;
                 }
             }
 

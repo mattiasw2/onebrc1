@@ -165,6 +165,12 @@ Time taken for 1000000 entries: 00:00:00.0859724
 Time taken for 250000000 entries: 00:00:02.3642204
 Time taken for 1000000000 entries: 00:00:09.9864635
 
+### Test 11, CustomTryParseFloat with switch
+
+Time taken for 1000000 entries: 00:00:00.0717722
+Time taken for 250000000 entries: 00:00:02.7351735
+Time taken for 1000000000 entries: 00:00:09.5409982
+
 ## Is this really a good performance test? No!
 
 It was fun to test, but since the processing is so small, the OS and the NVM disk are the bottlenecks. 
