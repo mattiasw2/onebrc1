@@ -177,7 +177,7 @@ namespace onebrc1
                 ReadOnlySpan<byte> keySpan = line.Slice(0, separatorPos);
                 ReadOnlySpan<byte> valueSpan = line.Slice(separatorPos + 1);
 
-                if (float.TryParse(valueSpan, out float value))
+                if (CustomTryParseFloat(valueSpan, out float value))
                 {
                     if (dictionary.TryGetValue(keySpan, out Station? currentValue))
                     {
@@ -193,6 +193,46 @@ namespace onebrc1
             {
                 throw new InvalidOperationException($"Invalid line format, didn't find ';' in '{Encoding.UTF8.GetString(line)}'");
             }
+        }
+
+        private static bool CustomTryParseFloat(ReadOnlySpan<byte> span, out float result)
+        {
+            result = 0;
+            bool isNegative = false;
+            int decimalPlace = -1;
+
+            for (int i = 0; i < span.Length; i++)
+            {
+                if (span[i] == '-')
+                {
+                    if (i != 0) return false; // '-' can only be at the first position
+                    isNegative = true;
+                }
+                else if (span[i] == '.')
+                {
+                    if (decimalPlace != -1) return false; // More than one '.'
+                    decimalPlace = i;
+                }
+                else if (span[i] >= '0' && span[i] <= '9')
+                {
+                    int digit = span[i] - '0';
+                    if (decimalPlace == -1)
+                    {
+                        result = result * 10 + digit;
+                    }
+                    else
+                    {
+                        result += digit * (float)Math.Pow(10, decimalPlace - i);
+                    }
+                }
+                else
+                {
+                    return false; // Invalid character
+                }
+            }
+
+            if (isNegative) result = -result;
+            return true;
         }
 
     }

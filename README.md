@@ -8,10 +8,10 @@ https://github.com/gunnarmorling/1brc#faq
 
 
 Todo: 
-- [ ] Currently, I just sum up the values. I need to implement the calculation of the average value.
+- [x] Currently, I just sum up the values. I need to implement the calculation of the average value.
 - [ ] Write the correct format of the output file
 - [x] Experiment with a dictionary where I only have to place the dictionary keys on the heap once.
-- [ ] Does memory mapped file improve performance? Parallel processing is possible without it, just seek to the starting position.
+- [x] Does memory mapped file improve performance? Parallel processing is possible without it, just seek to the starting position.
 
 ## Results
 
@@ -158,6 +158,12 @@ Time taken for 1000000000 entries: 00:00:21.2608695
 Time taken for 1000000 entries: 00:00:00.0945957
 Time taken for 250000000 entries: 00:00:03.2095751
 Time taken for 1000000000 entries: 00:00:13.7454747
+
+### Test 10, CustomTryParseFloat
+
+Time taken for 1000000 entries: 00:00:00.0859724
+Time taken for 250000000 entries: 00:00:02.3642204
+Time taken for 1000000000 entries: 00:00:09.9864635
 
 ## Is this really a good performance test? No!
 
