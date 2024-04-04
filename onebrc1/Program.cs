@@ -5,6 +5,7 @@ namespace onebrc1
 
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.IO.MemoryMappedFiles;
     using System.Linq;
     using System.Text;
@@ -26,7 +27,7 @@ namespace onebrc1
 
             foreach (var (fileName, recordCount) in fileNames)
             {
-                var start = DateTime.Now;
+                long start = Stopwatch.GetTimestamp();
 
                 long fileSize = new FileInfo(fileName).Length;
                 long noOfChunks = 28;
@@ -60,7 +61,7 @@ namespace onebrc1
                 PrintResult(finalDictionary);
 
                 var endtime = DateTime.Now;
-                Console.WriteLine($"Time taken for {recordCount} entries: {endtime - start}");
+                Console.WriteLine($"Time taken for {recordCount} entries: {Stopwatch.GetElapsedTime(start)}");
             }
         }
 
