@@ -106,98 +106,54 @@ namespace onebrc1
             return finalDictionary;
         }
 
-
         static void ProcessChunk(string nameOfFile, long start, long end, long chunkSize, long overlapChunkSize, CustomByteDictionary<float> dictionary)
         {
-            // Adjust start and end to make sure we're not starting or ending in the middle of a record
-            // This adjustment is not shown here but would involve seeking to the nearest newline character
-
             using var fs = new FileStream(nameOfFile, FileMode.Open, FileAccess.Read, FileShare.Read);
-            using var mmf = MemoryMappedFile.CreateFromFile(fs, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: false);
-            using var accessor = mmf.CreateViewAccessor(start, end - start - 1 + overlapChunkSize, MemoryMappedFileAccess.Read);
-
-
-            //byte[] buffer = new byte[end - start];
-            //accessor.ReadArray(0, buffer, 0, buffer.Length);
-            //ReadOnlyMemory<byte> memory = new ReadOnlyMemory<byte>(buffer);
-            //ReadOnlySpan<byte> span = memory.Span;
-
-            // Unsafe code might be required to directly create a Span<byte> from a MemoryMappedViewAccessor
-            unsafe
-            {
-                byte* ptr = null;
-                accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
-                var span = new Span<byte>(ptr, (int)accessor.Capacity);
-                // Process the span directly...
-
-
-
-                ProcessChunkInternal(start, chunkSize, dictionary, span);
-            }
+            fs.Position = start;
+            using var sr = new StreamReader(fs);
+            ProcessChunkInternal(sr, start, end, chunkSize, dictionary);
         }
 
-        private static void ProcessChunkInternal(long start, long chunkSize, CustomByteDictionary<float> dictionary, Span<byte> span)
+        private static void ProcessChunkInternal(StreamReader sr, long start, long end, long chunkSize, CustomByteDictionary<float> dictionary)
         {
-            int lineStart = 0;
-
+            string? line;
+            long bytesRead = 0;
             if (start != 0)
             {
-                lineStart = span.IndexOf((byte)'\n') + 1; // Skip the first partial line incl \n
+                // Skip the first line if not the first chunk
+                sr.ReadLine();
             }
 
-            int length = span.Length;
-            for (int i = lineStart; i < length; i++)
+            while ((line = sr.ReadLine()) != null && bytesRead <= chunkSize)
             {
-                // Find the end of the line, we assume file has ending \n
-
-
-                if (span[i] == (byte)'\n')
+                // Find the separator (semicolon) position
+                if (line.Length > 0)
                 {
-                    // Process the line
-                    int spanLength = i - lineStart;
-                    if (spanLength == 0) break; // Empty line, we're done
-
-                    ReadOnlySpan<byte> line = span.Slice(lineStart, spanLength);
-
-                    // Find the separator (semicolon) position
-                    int separatorPos = line.IndexOf((byte)';');
+                    int separatorPos = line.IndexOf(';');
                     if (separatorPos != -1)
                     {
-                        ReadOnlySpan<byte> keySpan = line.Slice(0, separatorPos);
-                        ReadOnlySpan<byte> valueSpan = line.Slice(separatorPos + 1, line.Length - separatorPos - 1); // Exclude '\n'
-
-                        // Console.WriteLine($"keySpan: {Encoding.UTF8.GetString(keySpan.ToArray())}");
-                        // Console.WriteLine($"valueSpan: {Encoding.UTF8.GetString(valueSpan.ToArray())}");
+                        ReadOnlySpan<byte> keySpan = Encoding.UTF8.GetBytes(line.Substring(0, separatorPos));
+                        ReadOnlySpan<byte> valueSpan = Encoding.UTF8.GetBytes(line.Substring(separatorPos + 1));
 
                         if (float.TryParse(Encoding.UTF8.GetString(valueSpan), out float value))
                         {
-                            // todo: possible optimization, only copy memory if key is not already in dictionary
-
-                            // ReadOnlyMemory<byte> keyMemory = span.Slice(lineStart, separatorPos);
-                            byte[] keyMemory = keySpan.ToArray();
-
-                            if (dictionary.TryGetValue(keyMemory, out float currentValue))
+                            if (dictionary.TryGetValue(keySpan, out float currentValue))
                             {
-                                dictionary[keyMemory] = currentValue + value;
+                                dictionary[keySpan] = currentValue + value;
                             }
                             else
                             {
-                                dictionary.AddOrUpdate(keyMemory, value);
+                                dictionary.AddOrUpdate(keySpan, value);
                             }
                         }
                     }
                     else
                     {
-                        throw new InvalidOperationException($"Invalid line format, didn't find ';' in '{Encoding.UTF8.GetString(line.ToArray())}'");
-                    }
-
-                    lineStart = i + 1; // Start of the next line
-
-                    if (i >= chunkSize)
-                    {
-                        break;
+                        throw new InvalidOperationException($"Invalid line format, didn't find ';' in '{line}'");
                     }
                 }
+
+                bytesRead += Encoding.UTF8.GetByteCount(line) + 2; // +2 for \r\n
             }
         }
     }

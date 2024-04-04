@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "onebrc1": {
+      "commandName": "Project",
+      "workingDirectory": "C:\\data6\\cs\\onebrc1"
+    }
+  }
+}

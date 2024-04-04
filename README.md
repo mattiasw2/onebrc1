@@ -74,6 +74,36 @@ Tried to remove overlapping of memory mapped files, but it didn't make any diffe
       <0.01%   WriteLine  •  6.5 ms  •  System.Console.WriteLine(String)
 ```
 
+The faster solution only has 25% unexplained time, so it is much better.
+
+```
+  100%   All Calls  •  98,764 ms
+    69.1%   <<Main>$>b__1  •  68,286 ms  •  Program+<>c__DisplayClass0_0.<<Main>$>b__1(Int32)
+      27.2%   GetValueRefOrAddDefault  •  26,829 ms  •  System.Collections.Generic.Dictionary`2+CollectionsMarshalHelper.GetValueRefOrAddDefault(Dictionary, TKey, out Boolean)
+      17.2%   NonPackedIndexOfValueType  •  16,977 ms  •  System.SpanHelpers.NonPackedIndexOfValueType(ref TValue, TValue, Int32)
+      8.97%   Read  •  8,862 ms  •  System.IO.FileStream.Read(Span)
+      2.33%   _ZeroMemory  •  2,298 ms  •  System.Buffer._ZeroMemory(ref Byte, UIntPtr)
+      0.65%   Read  •  644 ms  •  System.IO.Strategies.BufferedFileStreamStrategy.Read(Span)
+      0.02%   Dispose  •  17 ms  •  System.IO.Stream.Dispose()
+      0.01%   Memmove  •  13 ms  •  System.Buffer.Memmove(ref Byte, ref Byte, UIntPtr)
+      <0.01%   get_Position  •  7.4 ms  •  System.IO.FileStream.get_Position()
+    5.00%   <Main>$  •  4,942 ms  •  Program.<Main>$(String[])
+      5.00%   <<Main>$>g__HelpMe|0_0  •  4,935 ms  •  Program.<<Main>$>g__HelpMe|0_0(String, Int32)
+        4.95%   For  •  4,892 ms  •  System.Threading.Tasks.Parallel.For(Int32, Int32, Action)
+          4.83%   <<Main>$>b__1  •  4,765 ms  •  Program+<>c__DisplayClass0_0.<<Main>$>b__1(Int32)
+            1.78%   GetValueRefOrAddDefault  •  1,758 ms  •  System.Collections.Generic.Dictionary`2+CollectionsMarshalHelper.GetValueRefOrAddDefault(Dictionary, TKey, out Boolean)
+            0.93%   NonPackedIndexOfValueType  •  914 ms  •  System.SpanHelpers.NonPackedIndexOfValueType(ref TValue, TValue, Int32)
+            0.72%   Read  •  716 ms  •  System.IO.FileStream.Read(Span)
+            0.26%   Read  •  259 ms  •  System.IO.Strategies.BufferedFileStreamStrategy.Read(Span)
+            0.06%   _ZeroMemory  •  59 ms  •  System.Buffer._ZeroMemory(ref Byte, UIntPtr)
+      ► 0.02%   Print  •  20 ms  •  Station.Print()
+        0.01%   Write  •  11 ms  •  System.Console.Write(String)
+        <0.01%   set_OutputEncoding  •  6.7 ms  •  System.Console.set_OutputEncoding(Encoding)
+        <0.01%   MoveNext  •  6.2 ms  •  System.Linq.OrderedEnumerable`1+<GetEnumerator>d__19.MoveNext()
+
+#stacktrace
+```
+
 ### Test 1, using standard dictionary
 
 Time taken for 1000000 entries: 00:00:00.1249419
