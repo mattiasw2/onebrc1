@@ -158,6 +158,11 @@ Time taken for 1000000000 entries: 00:00:21.2608695
 Time taken for 1000000 entries: 00:00:00.0955160
 Time taken for 250000000 entries: 00:00:04.4673666
 
+### Test 10, Removed unnecessary Encoding.UTF8.GetString taht was introduced when parsing float.
+
+Time taken for 1000000 entries: 00:00:00.0839292
+Time taken for 250000000 entries: 00:00:03.1789454
+
 ## Is this really a good performance test? No!
 
 It was fun to test, but since the processing is so small, the OS and the NVM disk are the bottlenecks. 

@@ -177,7 +177,7 @@ namespace onebrc1
                 ReadOnlySpan<byte> keySpan = line.Slice(0, separatorPos);
                 ReadOnlySpan<byte> valueSpan = line.Slice(separatorPos + 1);
 
-                if (float.TryParse(Encoding.UTF8.GetString(valueSpan), out float value))
+                if (float.TryParse(valueSpan, out float value))
                 {
                     if (dictionary.TryGetValue(keySpan, out Station currentValue))
                     {
