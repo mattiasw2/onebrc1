@@ -1,4 +1,4 @@
-﻿// #define SINGLE_THREAD
+﻿#define SINGLE_THREAD
 
 namespace onebrc1
 {
@@ -6,12 +6,12 @@ namespace onebrc1
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
-    using System.IO.MemoryMappedFiles;
     using System.Linq;
     using System.Text;
 
     class Program
     {
+        private static int bufferSize;
 
 
         static void Main()
@@ -22,7 +22,7 @@ namespace onebrc1
                 // ("c:/data6/cs/onebrc1/onebrc1/medium.txt", 1000),
                 ("c:/data6/cs/onebrc1/onebrc1/measurements_1000000.txt", 1000000),
                 ("c:/data6/cs/onebrc1/onebrc1/measurements_250000000.txt", 250000000),
-                ("c:/data6/cs/onebrc1/onebrc1/measurements_1000000000.txt", 1000000000)
+                // ("c:/data6/cs/onebrc1/onebrc1/measurements_1000000000.txt", 1000000000)
             };
 
             foreach (var (fileName, recordCount) in fileNames)
@@ -34,13 +34,14 @@ namespace onebrc1
                 long chunkSize = fileSize / noOfChunks + 1;
                 long overlapChunkSize = Math.Min(1000, fileSize / noOfChunks);
 
-                var dictionaries = new CustomByteDictionary<float>[noOfChunks];
+                var dictionaries = new CustomByteDictionary<Station>[noOfChunks];
 
                 Action<long> f = (i) =>
                 {
                     // Console.WriteLine($"Processing chunk {i} of {noOfChunks}");
-                    dictionaries[i] = new CustomByteDictionary<float>();
-                    ProcessChunk(fileName, i * chunkSize, Math.Min((i + 1) * chunkSize, fileSize + 1), chunkSize, (i == noOfChunks - 1 ? 0 : overlapChunkSize), dictionaries[i]);
+                    dictionaries[i] = new CustomByteDictionary<Station>();
+                    ProcessChunk(fileName, i * chunkSize, Math.Min((i + 1) * chunkSize, fileSize + 1), 
+                        chunkSize, (i == noOfChunks - 1 ? 0 : overlapChunkSize), dictionaries[i]);
                 };
 
 #if SINGLE_THREAD
@@ -65,10 +66,10 @@ namespace onebrc1
             }
         }
 
-        private static void PrintResult(Dictionary<ReadOnlyMemory<byte>, float> finalDictionary)
+        private static void PrintResult(Dictionary<ReadOnlyMemory<byte>, Station> finalDictionary)
         {
             // Convert keys to strings, sort, and print
-            var sorted = finalDictionary.Select(kvp => new { Name = Encoding.UTF8.GetString(kvp.Key.ToArray()), Sum = kvp.Value })
+            var sorted = finalDictionary.Select(kvp => new { Name = kvp.Value._name, Sum = kvp.Value })
                 .OrderBy(x => x.Name);
 
 
@@ -84,17 +85,17 @@ namespace onebrc1
             }
         }
 
-        private static Dictionary<ReadOnlyMemory<byte>, float> CombineDictionaries(CustomByteDictionary<float>[] dictionaries)
+        private static Dictionary<ReadOnlyMemory<byte>, Station> CombineDictionaries(CustomByteDictionary<Station>[] dictionaries)
         {
-            var finalDictionary = new Dictionary<ReadOnlyMemory<byte>, float>(new ReadOnlyMemoryComparer());
+            var finalDictionary = new Dictionary<ReadOnlyMemory<byte>, Station>(new ReadOnlyMemoryComparer());
 
             foreach (var dictionary in dictionaries)
             {
                 foreach (var kvp in dictionary)
                 {
-                    if (finalDictionary.TryGetValue(kvp.Key, out float currentValue))
+                    if (finalDictionary.TryGetValue(kvp.Key, out Station currentValue))
                     {
-                        finalDictionary[kvp.Key] = currentValue + kvp.Value;
+                        currentValue.Combine(kvp.Value);
                     }
                     else
                     {
@@ -106,17 +107,18 @@ namespace onebrc1
             return finalDictionary;
         }
 
-        static void ProcessChunk(string nameOfFile, long start, long end, long chunkSize, long overlapChunkSize, CustomByteDictionary<float> dictionary)
+        static void ProcessChunk(string nameOfFile, long start, long end, long chunkSize, long overlapChunkSize, 
+            CustomByteDictionary<Station> dictionary)
         {
-            using var fs = new FileStream(nameOfFile, FileMode.Open, FileAccess.Read, FileShare.Read);
-            fs.Position = start;
-            using var sr = new BufferedStream(fs);
-            ProcessChunkInternal(sr, start, end, chunkSize, dictionary);
+            using var fs = File.OpenRead(nameOfFile); //  new FileStream(nameOfFile, FileMode.Open, FileAccess.Read, FileShare.Read);
+            ProcessChunkInternal(fs, start, end, chunkSize, dictionary);
         }
 
-        private static void ProcessChunkInternal(BufferedStream bs, long start, long end, long chunkSize, CustomByteDictionary<float> dictionary)
+        private static void ProcessChunkInternal(Stream bs, long start, long end, long chunkSize, 
+            CustomByteDictionary<Station> dictionary)
         {
-            byte[] buffer = new byte[1024 + 100]; // Adjust the size as needed, +100 for maximum length of a row
+            bufferSize = 65536;  // 1024;
+            byte[] buffer = new byte[bufferSize + 100]; // Adjust the size as needed, +100 for maximum length of a row
             int bytesRead;
             int lineStart = 0;
 
@@ -166,7 +168,7 @@ namespace onebrc1
             }
         }
 
-        private static void ProcessLine(ReadOnlySpan<byte> line, CustomByteDictionary<float> dictionary)
+        private static void ProcessLine(ReadOnlySpan<byte> line, CustomByteDictionary<Station> dictionary)
         {
             // Find the separator (semicolon) position
             int separatorPos = line.IndexOf((byte)';');
@@ -177,13 +179,13 @@ namespace onebrc1
 
                 if (float.TryParse(Encoding.UTF8.GetString(valueSpan), out float value))
                 {
-                    if (dictionary.TryGetValue(keySpan, out float currentValue))
+                    if (dictionary.TryGetValue(keySpan, out Station currentValue))
                     {
-                        dictionary[keySpan] = currentValue + value;
+                        currentValue.Append(value);
                     }
                     else
                     {
-                        dictionary.AddOrUpdate(keySpan, value);
+                        dictionary.AddOrUpdate(keySpan, new Station(keySpan, value));
                     }
                 }
             }
