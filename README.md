@@ -1,5 +1,10 @@
 ﻿# 1brc using C#
 
+Read this instead of the rest on how to get optimal dotnet performance: 
+
+https://hotforknowledge.com/2024/01/13/1brc-in-dotnet-among-fastest-on-linux-my-optimization-journey/
+
+
 A good example how to use span and memory mapped files in C#.
 
 You need to create the measurement file first. More information at
